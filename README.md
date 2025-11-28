@@ -1,212 +1,152 @@
-# Subsistence Risk Analysis for Bristol
+# Subsidence Risk Analysis for Bristol
 
-A comprehensive geospatial analysis toolkit for assessing subsistence risk based on tree, building, and soil data.
+A geospatial analysis tool for assessing **building-level subsidence risk** based on soil type and tree proximity.
 
 ## Overview
 
-This project provides a Jupyter notebook-based workflow for collecting, analyzing, and visualizing subsistence risk data. The analysis combines multiple geospatial datasets to identify areas with potential subsistence risk in the Bristol area.
+This project calculates subsidence risk scores (0-10) for individual buildings by combining:
 
-## Features
+- **🌍 Soil Data** - From British Geological Survey (BGS) WMS service
+- **🌳 Tree Data** - From Bristol City Council API (55,000+ trees)
+- **🏠 Building Data** - From OpenStreetMap (227,000+ buildings)
 
-- **Multi-source Data Collection**: Integrates with various APIs including OpenStreetMap
-- **Comprehensive Analysis**: Combines soil characteristics, tree proximity, and building density
-- **Interactive Visualization**: Creates interactive maps using Folium and static plots with Matplotlib
-- **Risk Scoring**: Multi-factor risk calculation with customizable weights
-- **Multiple Export Formats**: GeoJSON, Shapefile, HTML, CSV
-- **Query Tools**: Location-based risk queries and automated reporting
-- **Extensible Framework**: Easy to integrate additional data sources and APIs
+## Quick Start
 
-## Installation
+### 1. Setup Environment
 
-### Prerequisites
-
-- Python 3.8 or higher
-- pip package manager
-- Jupyter Notebook or JupyterLab
-
-### Setup
-
-1. Clone the repository:
 ```bash
-git clone https://github.com/fowlertc/subsistencerisk.git
-cd subsistencerisk
-```
+# Create virtual environment
+python -m venv subsidence
+.\subsidence\Scripts\Activate.ps1  # Windows
+source subsidence/bin/activate      # Linux/Mac
 
-2. Install required packages:
-```bash
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-3. Launch Jupyter:
+### 2. Run the Notebook
+
 ```bash
-jupyter notebook subsistence_risk_analysis.ipynb
+jupyter notebook subsidence_risk_analysis.ipynb
 ```
 
-## Usage
+Run cells sequentially. The notebook will:
+1. Fetch tree data from Bristol City Council API
+2. Fetch building footprints from OpenStreetMap
+3. Fetch soil data from BGS WMS service (tiled for large areas)
+4. Calculate risk scores for each building using spatial indexing
+5. Generate interactive map with toggleable layers
 
-### Quick Start
+## Risk Scoring
 
-1. Open `subsistence_risk_analysis.ipynb` in Jupyter
-2. Run all cells sequentially (Cell → Run All)
-3. The notebook will:
-   - Collect data from OpenStreetMap
-   - Generate synthetic soil data (replace with real API in production)
-   - Calculate subsistence risk scores
-   - Create interactive visualizations
-   - Export results in multiple formats
+### Combined Score (0-10)
 
-### Outputs
-
-The notebook generates the following files:
-
-- `subsistence_risk_map.html` - Interactive web map
-- `subsistence_risk_layer.geojson` - GeoJSON format for web applications
-- `subsistence_risk_layer.shp` (+ .shx, .dbf, .prj) - Shapefile for GIS software
-- `subsistence_risk_summary.csv` - Summary statistics and data
-- `subsistence_risk_report.txt` - Analysis report
-- `soil_statistics.png` - Statistical visualizations
-- `leaflet_integration_example.html` - Web integration template
-
-### Customization
-
-#### Study Area
-
-Modify the `BRISTOL_BOUNDS` dictionary in the notebook to analyze different areas:
-
-```python
-BRISTOL_BOUNDS = {
-    'north': 51.5200,
-    'south': 51.4000,
-    'east': -2.5000,
-    'west': -2.7000
-}
+```
+Combined Score = (Soil Score × 0.4) + (Tree Score × 0.6)
 ```
 
-#### Risk Calculation Weights
+- **40% Soil Risk** - Based on soil shrink-swell potential
+- **60% Tree Risk** - Based on proximity to tree root zones
 
-Adjust risk factor weights in the `calculate_subsistence_risk()` function:
+### Soil Risk Scores
 
-```python
-risk_score = (
-    avg_soil_risk * 0.5 +    # Soil factors
-    tree_risk * 0.3 +         # Tree proximity
-    building_density * 0.2    # Building density
-)
-```
+| Soil Type | Score | Risk Level |
+|-----------|-------|------------|
+| Heavy Clay | 10 | Highest |
+| Clay | 8 | High |
+| Clay Loam | 6 | Medium-High |
+| Loam | 4 | Medium |
+| Sandy Loam | 2 | Low |
+| Sand | 1 | Minimal |
+| Unknown | 0 | No data |
 
-#### Grid Resolution
+### Tree Proximity Scoring
 
-Change the `grid_size` parameter for different analysis resolutions:
+Trees within root zone contribute significantly to risk:
+- **Root zone** (1.5× crown width): 3-5 points per tree
+- **Very close** (< 5m): +2 point bonus
+- **Outside root zone**: Linear decay to 0 at 30m
 
-```python
-risk_layer = calculate_subsistence_risk(
-    soil_data, 
-    tree_data, 
-    building_data,
-    grid_size=0.01  # Smaller = higher resolution
-)
-```
+**Species risk factors:**
+| Species | Factor | Water Uptake |
+|---------|--------|--------------|
+| Willow | 1.8× | Very High |
+| Poplar | 1.7× | High |
+| Oak | 1.5× | Medium-High |
+| Ash | 1.3× | Medium |
+| Birch | 0.9× | Lower |
+
+## Output Files
+
+| File | Description |
+|------|-------------|
+| `bristol_buildings_scored.geojson` | Buildings with full risk attributes |
+| `subsidence_risk_buildings.html` | Interactive map with layers |
+
+## Study Areas
+
+The notebook includes three predefined study areas:
+
+| Area | Size | Buildings | Use Case |
+|------|------|-----------|----------|
+| TINY | ~0.25 km² | ~600 | Quick testing |
+| TEST | ~4 km² | ~5,000 | Development |
+| FULL | ~180 km² | ~227,000 | Production |
+
+Change `BRISTOL_BOUNDS = BRISTOL_BOUNDS_FULL` in cell 2 to switch areas.
+
+## Performance
+
+The analysis uses several optimizations:
+- **Tiled WMS fetching** - Handles large areas by splitting into ~1.6km × 1.5km tiles
+- **R-tree spatial index** - ~40× faster tree proximity queries
+- **Parallel API requests** - Faster building data collection
+
+| Area | Buildings | Scoring Time |
+|------|-----------|--------------|
+| TINY | 600 | ~10 seconds |
+| TEST | 5,000 | ~1 minute |
+| FULL | 227,000 | ~5-10 minutes |
 
 ## Data Sources
 
-### Current
+- **Trees**: [Bristol City Council Open Data](https://maps2.bristol.gov.uk/)
+- **Buildings**: [OpenStreetMap](https://www.openstreetmap.org/) via Overpass API
+- **Soil**: [British Geological Survey WMS](https://map.bgs.ac.uk/arcgis/services/UKSO/UKSO_BGS/MapServer/WMSServer)
 
-- **OpenStreetMap (OSM)**: Building and tree data via OSMnx
-- **Synthetic Soil Data**: Generated for demonstration
+## Requirements
 
-### Recommended Additional Sources
+- Python 3.10+
+- See `requirements.txt` for full dependencies
 
-1. **British Geological Survey (BGS) API**
-   - Geological data
-   - Ground stability information
-   - Historical subsidence records
+Key packages:
+- `geopandas` - Geospatial data handling
+- `folium` - Interactive maps
+- `owslib` - WMS service access
+- `osmnx` - OpenStreetMap data
+- `shapely` - Geometry operations
 
-2. **UK Environment Agency**
-   - Flood risk data
-   - Water table levels
+## Project Structure
 
-3. **Met Office Weather API**
-   - Rainfall patterns
-   - Drought conditions
-
-4. **European Soil Data Centre (ESDAC)**
-   - Soil composition
-   - Moisture content
-   - Clay distribution
-
-## Risk Factors
-
-The analysis considers three main factors:
-
-1. **Soil Conditions (50% weight)**
-   - Shrink-swell potential
-   - Clay content
-   - Moisture levels
-
-2. **Tree Proximity (30% weight)**
-   - Distance to large trees
-   - Vegetation density
-   - Root damage potential
-
-3. **Building Density (20% weight)**
-   - Infrastructure concentration
-   - Building footprints
-   - Development patterns
-
-## Publishing Options
-
-The generated risk layers can be published via:
-
-1. **Static Web Hosting**: Upload HTML files to any web server
-2. **GIS Platforms**: Import Shapefiles to QGIS, ArcGIS
-3. **Web Mapping Services**: 
-   - Mapbox
-   - ArcGIS Online
-   - Carto
-   - Google Earth Engine
-4. **API Service**: Serve GeoJSON via REST API
-5. **Tile Server**: Convert to raster tiles for performance
-
-## API Integration
-
-To integrate additional APIs, use the template in section 9 of the notebook:
-
-```python
-def integrate_external_api(api_url, params):
-    response = requests.get(api_url, params=params)
-    response.raise_for_status()
-    return response.json()
 ```
-
-## Contributing
-
-Contributions are welcome! Areas for improvement:
-
-- Integration with real soil data APIs
-- Historical subsidence data incorporation
-- Machine learning-based risk prediction
-- Real-time data updates
-- Additional visualization types
-- Mobile app integration
+subsistencerisk/
+├── subsidence_risk_analysis.ipynb  # Main analysis notebook
+├── requirements.txt                 # Python dependencies
+├── README.md                        # This file
+├── config_example.py               # Example configuration
+└── outputs/
+    ├── bristol_buildings_scored.geojson
+    └── subsidence_risk_buildings.html
+```
 
 ## License
 
-This project is provided as-is for educational and research purposes.
+Open data sources used under their respective licenses:
+- BGS data: Open Government Licence
+- OSM data: ODbL
+- Bristol Council data: Open Government Licence
 
-## Acknowledgments
-
-- OpenStreetMap contributors for geospatial data
-- OSMnx library for OpenStreetMap integration
-- GeoPandas and Folium for geospatial analysis and visualization
 
 ## Contact
 
 For questions or collaboration opportunities, please open an issue on GitHub.
-
-## References
-
-- [OpenStreetMap](https://www.openstreetmap.org/)
-- [British Geological Survey](https://www.bgs.ac.uk/)
-- [GeoPandas Documentation](https://geopandas.org/)
-- [Folium Documentation](https://python-visualization.github.io/folium/)
-- [OSMnx Documentation](https://osmnx.readthedocs.io/)

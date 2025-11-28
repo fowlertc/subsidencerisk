@@ -3,6 +3,11 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Virtual environment
+subsidence/
+venv/
+.venv/
+
 # C extensions
 *.so
 
@@ -25,6 +30,11 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Generated output files
+*.html
+bristol_buildings_*.geojson
+cache/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -85,9 +95,9 @@ target/
 *.dbf
 *.prj
 *.cpg
-subsistence_risk_map.html
-subsistence_risk_summary.csv
-subsistence_risk_report.txt
+subsidence_risk_map.html
+subsidence_risk_summary.csv
+subsidence_risk_report.txt
 soil_statistics.png
 leaflet_integration_example.html
 
